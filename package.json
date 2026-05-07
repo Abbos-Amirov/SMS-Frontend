@@ -1,0 +1,11 @@
+{
+  "name": "sms-frontenda",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix sms-frontend",
+    "build": "npm run build --prefix sms-frontend",
+    "preview": "npm run preview --prefix sms-frontend",
+    "typecheck": "npm run typecheck --prefix sms-frontend",
+    "install:app": "npm install --prefix sms-frontend"
+  }
+}
