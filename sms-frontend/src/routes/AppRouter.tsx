@@ -9,6 +9,7 @@ import Templates from '../pages/Templates';
 import Contacts from '../pages/Contacts';
 import ApiSettings from '../pages/ApiSettings';
 import StubPage from '../pages/StubPage';
+import AutoReply from '../pages/AutoReply';
 
 export function AppRouter() {
   return (
@@ -27,7 +28,7 @@ export function AppRouter() {
             <Route path="/contacts" element={<Contacts />} />
             <Route path="/send" element={<StubPage title="Xabar yuborish" />} />
             <Route path="/ussd" element={<StubPage title="USSD" />} />
-            <Route path="/auto-reply" element={<StubPage title="Avto javob" />} />
+            <Route path="/auto-reply" element={<AutoReply />} />
             <Route path="/api-settings" element={<ApiSettings />} />
             <Route path="/subscriptions" element={<StubPage title="Obuna tariflari" />} />
             <Route path="*" element={<Navigate to="/" replace />} />
