@@ -2,6 +2,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { ThemeSync } from './components/ThemeSync/ThemeSync';
+import { Toaster } from './components/ui/Toaster';
 import { AppRouter } from './routes/AppRouter';
 import './styles/main.css';
 
@@ -11,6 +12,7 @@ export default function App() {
       <ThemeSync />
       <BrowserRouter>
         <AppRouter />
+        <Toaster />
       </BrowserRouter>
     </Provider>
   );

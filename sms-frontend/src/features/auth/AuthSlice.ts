@@ -1,43 +1,60 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-
-export type AuthUser = {
-  name: string;
-};
+import { AUTH_MEMBER_KEY, AUTH_TOKEN_KEY } from '../../api/axiosClient';
+import type { AuthResponse, Member } from '../../types';
 
 export interface AuthState {
-  user: AuthUser | null;
   token: string | null;
-  status: 'idle' | 'loading';
+  member: Member | null;
+}
+
+function readMember(): Member | null {
+  try {
+    const raw = localStorage.getItem(AUTH_MEMBER_KEY);
+    return raw ? (JSON.parse(raw) as Member) : null;
+  } catch {
+    return null;
+  }
 }
 
 const initialState: AuthState = {
-  user: typeof localStorage !== 'undefined' ? { name: 'Oscar' } : null,
-  token: typeof localStorage !== 'undefined' ? localStorage.getItem('auth_token') : null,
-  status: 'idle',
+  token: typeof localStorage !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null,
+  member: typeof localStorage !== 'undefined' ? readMember() : null,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setToken(state, action: PayloadAction<string | null>) {
-      state.token = action.payload;
-      if (action.payload) {
-        localStorage.setItem('auth_token', action.payload);
-      } else {
-        localStorage.removeItem('auth_token');
+    setCredentials(state, action: PayloadAction<AuthResponse>) {
+      state.token = action.payload.token;
+      state.member = action.payload.member;
+      try {
+        localStorage.setItem(AUTH_TOKEN_KEY, action.payload.token);
+        localStorage.setItem(AUTH_MEMBER_KEY, JSON.stringify(action.payload.member));
+      } catch {
+        /* ignore */
       }
     },
-    setUser(state, action: PayloadAction<AuthUser | null>) {
-      state.user = action.payload;
+    setMember(state, action: PayloadAction<Member>) {
+      state.member = action.payload;
+      try {
+        localStorage.setItem(AUTH_MEMBER_KEY, JSON.stringify(action.payload));
+      } catch {
+        /* ignore */
+      }
     },
     logout(state) {
-      state.user = null;
       state.token = null;
-      localStorage.removeItem('auth_token');
+      state.member = null;
+      try {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_MEMBER_KEY);
+      } catch {
+        /* ignore */
+      }
     },
   },
 });
 
-export const { setToken, setUser, logout } = authSlice.actions;
+export const { setCredentials, setMember, logout } = authSlice.actions;
 export default authSlice.reducer;

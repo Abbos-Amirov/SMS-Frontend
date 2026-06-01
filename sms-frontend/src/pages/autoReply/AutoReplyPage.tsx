@@ -1,186 +1,206 @@
-import { useCallback, useMemo, useState } from 'react';
-import type { AutoReplyRule, AutoReplySortKey } from './types';
-import { AUTO_REPLY_CONDITIONS } from './types';
-import { AutoReplyAddCard } from './components/AutoReplyAddCard';
-import { AutoReplyListCard } from './components/AutoReplyListCard';
+import { useMemo, useState } from 'react';
+import {
+  useCreateAutoReplyMutation,
+  useDeleteAutoReplyMutation,
+  useGetAutoRepliesQuery,
+  useUpdateAutoReplyMutation,
+} from '../../api/endpoints/autoReplyApi';
+import { IconEdit, IconPlus, IconTrash } from '../../components/icons/UiIcons';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { DataTable, Pagination, type Column } from '../../components/ui/DataTable';
+import { Input, Select, Textarea } from '../../components/ui/FormFields';
+import { ConfirmDialog, Modal } from '../../components/ui/Modal';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { StatusPill } from '../../components/ui/StatusPill';
+import { useToast } from '../../features/ui/useToast';
+import { autoReplyMatchLabel } from '../../lib/labels';
+import type { AutoReply, AutoReplyMatchType } from '../../types';
 
-let idSeed = 0;
-
-const DEFAULT_ADD = {
-  triggerMessage: '',
-  replyBody: '',
-  conditionLabel: AUTO_REPLY_CONDITIONS[0] ?? '',
-};
-
-function filterBySearch(rows: AutoReplyRule[], search: string): AutoReplyRule[] {
-  const q = search.trim().toLowerCase();
-  if (!q) return rows;
-  return rows.filter(
-    (r) =>
-      r.triggerMessage.toLowerCase().includes(q) ||
-      r.replyBody.toLowerCase().includes(q) ||
-      r.conditionLabel.toLowerCase().includes(q)
-  );
+const LIMIT = 20;
+interface EditState {
+  id?: string;
+  triggerText: string;
+  replyBody: string;
+  matchType: AutoReplyMatchType;
+  enabled: boolean;
 }
+const EMPTY: EditState = { triggerText: '', replyBody: '', matchType: 'CONTAINS', enabled: true };
 
-function sortRows(
-  rows: AutoReplyRule[],
-  sortKey: AutoReplySortKey,
-  sortDir: 'asc' | 'desc'
-): AutoReplyRule[] {
-  const m = sortDir === 'asc' ? 1 : -1;
-  const out = [...rows];
-  out.sort((a, b) => {
-    let cmp = 0;
-    if (sortKey === 'allowed') {
-      cmp = Number(a.allowed) - Number(b.allowed);
-    } else if (sortKey === 'trigger') {
-      cmp = a.triggerMessage.localeCompare(b.triggerMessage, 'uz');
-    } else if (sortKey === 'reply') {
-      cmp = a.replyBody.localeCompare(b.replyBody, 'uz');
-    } else {
-      cmp = a.conditionLabel.localeCompare(b.conditionLabel, 'uz');
-    }
-    return cmp * m;
-  });
-  return out;
-}
-
-/** Avto javob — qo‘shish formasi va tartiblangan jadval (holat sahifada; API keyin ulanishi mumkin). */
-export default function AutoReplyPage() {
-  const [items, setItems] = useState<AutoReplyRule[]>([]);
-  const [addForm, setAddForm] = useState(DEFAULT_ADD);
-
-  const [pageSize, setPageSize] = useState(10);
+export function AutoReplyPage() {
+  const toast = useToast();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const params = useMemo(() => ({ page, limit: LIMIT }), [page]);
+  const { data, isLoading, isError } = useGetAutoRepliesQuery(params);
 
-  const [sortKey, setSortKey] = useState<AutoReplySortKey>('trigger');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [createRule, { isLoading: creating }] = useCreateAutoReplyMutation();
+  const [updateRule, { isLoading: updating }] = useUpdateAutoReplyMutation();
+  const [deleteRule, { isLoading: deleting }] = useDeleteAutoReplyMutation();
 
-  const patchAdd = useCallback((p: Partial<typeof DEFAULT_ADD>) => {
-    setAddForm((f) => ({ ...f, ...p }));
-  }, []);
+  const [edit, setEdit] = useState<EditState | null>(null);
+  const [toDelete, setToDelete] = useState<AutoReply | null>(null);
 
-  const onSortColumn = useCallback(
-    (key: AutoReplySortKey) => {
-      setSortKey((prevKey) => {
-        if (prevKey !== key) {
-          setSortDir('asc');
-          return key;
-        }
-        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-        return prevKey;
-      });
-    },
-    []
-  );
-
-  const filtered = useMemo(() => filterBySearch(items, search), [items, search]);
-  const sorted = useMemo(() => sortRows(filtered, sortKey, sortDir), [filtered, sortKey, sortDir]);
-
-  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, pageCount);
-  const startIdx = (safePage - 1) * pageSize;
-  const pageRows = sorted.slice(startIdx, startIdx + pageSize);
-  const startN = sorted.length === 0 ? 0 : startIdx + 1;
-  const endN = Math.min(startIdx + pageRows.length, sorted.length);
-
-  const allOnPageSelected =
-    pageRows.length > 0 && pageRows.every((r) => selectedIds.has(r.id));
-
-  const toggleRow = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleAllPage = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      const allSelected = pageRows.length > 0 && pageRows.every((r) => next.has(r.id));
-      if (allSelected) {
-        pageRows.forEach((r) => next.delete(r.id));
-      } else {
-        pageRows.forEach((r) => next.add(r.id));
-      }
-      return next;
-    });
-  }, [pageRows]);
-
-  const handleAdd = () => {
-    const t = addForm.triggerMessage.trim();
-    const b = addForm.replyBody.trim();
-    if (!t || !b) return;
-    idSeed += 1;
-    const row: AutoReplyRule = {
-      id: `ar_${idSeed}`,
-      triggerMessage: t,
-      replyBody: b,
-      conditionLabel: addForm.conditionLabel,
-      allowed: true,
+  const save = async () => {
+    if (!edit || !edit.triggerText.trim() || !edit.replyBody.trim()) {
+      toast('error', 'Trigger va javob matni majburiy.');
+      return;
+    }
+    const payload = {
+      triggerText: edit.triggerText,
+      replyBody: edit.replyBody,
+      matchType: edit.matchType,
+      enabled: edit.enabled,
     };
-    setItems((prev) => [...prev, row]);
-    setAddForm({ ...DEFAULT_ADD, conditionLabel: addForm.conditionLabel });
-    setPage(1);
+    try {
+      if (edit.id) {
+        await updateRule({ id: edit.id, data: payload }).unwrap();
+        toast('success', 'Qoida yangilandi.');
+      } else {
+        await createRule(payload).unwrap();
+        toast('success', 'Qoida qo‘shildi.');
+      }
+      setEdit(null);
+    } catch {
+      toast('error', 'Saqlashda xatolik.');
+    }
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedIds.size === 0) return;
-    setItems((prev) => prev.filter((r) => !selectedIds.has(r.id)));
-    setSelectedIds(new Set());
+  const remove = async () => {
+    if (!toDelete) return;
+    try {
+      await deleteRule(toDelete._id).unwrap();
+      toast('success', 'Qoida o‘chirildi.');
+      setToDelete(null);
+    } catch {
+      toast('error', 'O‘chirishda xatolik.');
+    }
   };
 
-  const onPrev = () => setPage((p) => Math.max(1, p - 1));
-  const onNext = () => setPage((p) => Math.min(pageCount, p + 1));
-
-  const onPageSizeChange = (n: number) => {
-    setPageSize(n);
-    setPage(1);
-  };
-
-  const onSearchChange = (v: string) => {
-    setSearch(v);
-    setPage(1);
-  };
+  const columns: Column<AutoReply>[] = [
+    { key: 'triggerText', header: 'Trigger', render: (r) => <strong>{r.triggerText}</strong> },
+    {
+      key: 'replyBody',
+      header: 'Javob',
+      render: (r) => (
+        <span className="muted" style={{ display: 'inline-block', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {r.replyBody}
+        </span>
+      ),
+    },
+    { key: 'matchType', header: 'Moslik', render: (r) => autoReplyMatchLabel[r.matchType] },
+    {
+      key: 'enabled',
+      header: 'Holat',
+      render: (r) => <StatusPill tone={r.enabled ? 'success' : 'neutral'} label={r.enabled ? 'Yoqilgan' : 'O‘chiq'} />,
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (r) => (
+        <span className="row" style={{ justifyContent: 'flex-end' }}>
+          <button
+            className="icon-btn"
+            onClick={() => setEdit({ id: r._id, triggerText: r.triggerText, replyBody: r.replyBody, matchType: r.matchType, enabled: r.enabled })}
+            aria-label="Tahrirlash"
+          >
+            <IconEdit width={18} height={18} />
+          </button>
+          <button className="icon-btn icon-btn--danger" onClick={() => setToDelete(r)} aria-label="O‘chirish">
+            <IconTrash width={18} height={18} />
+          </button>
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="page auto-reply-page">
-      <AutoReplyAddCard
-        form={addForm}
-        conditions={AUTO_REPLY_CONDITIONS}
-        onPatch={patchAdd}
-        onSubmit={handleAdd}
+    <>
+      <PageHeader
+        title="Avto-javob"
+        subtitle="Kiruvchi xabarlarga avtomatik javob qoidalari."
+        actions={
+          <Button variant="primary" iconLeft={<IconPlus width={18} height={18} />} onClick={() => setEdit({ ...EMPTY })}>
+            Yangi qoida
+          </Button>
+        }
       />
 
-      <AutoReplyListCard
-        pageSize={pageSize}
-        onPageSizeChange={onPageSizeChange}
-        search={search}
-        onSearchChange={onSearchChange}
-        pageRows={pageRows}
-        selectedIds={selectedIds}
-        allOnPageSelected={allOnPageSelected}
-        onToggleAllPage={toggleAllPage}
-        onToggleRow={toggleRow}
-        onDeleteSelected={handleDeleteSelected}
-        sortKey={sortKey}
-        sortDir={sortDir}
-        onSortColumn={onSortColumn}
-        pagination={{
-          total: sorted.length,
-          start: startN,
-          end: endN,
-          page: safePage,
-          pageCount,
-          onPrev,
-          onNext,
-        }}
+      <div className="form-banner" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>
+        Eslatma: avto-javob ijrosi (kiruvchi SMS) keyingi bosqichda yoqiladi. Hozircha qoidalarni sozlashingiz mumkin.
+      </div>
+
+      <Card bodyless>
+        <DataTable
+          columns={columns}
+          rows={data?.list ?? []}
+          rowKey={(r) => r._id}
+          loading={isLoading}
+          error={isError}
+          emptyTitle="Qoida yo‘q"
+          emptyMessage="Birinchi avto-javob qoidasini yarating."
+        />
+        {data && data.total > 0 && <Pagination page={page} limit={LIMIT} total={data.total} onPage={setPage} />}
+      </Card>
+
+      <Modal
+        open={!!edit}
+        title={edit?.id ? 'Qoidani tahrirlash' : 'Yangi qoida'}
+        onClose={() => setEdit(null)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setEdit(null)}>Bekor qilish</Button>
+            <Button variant="primary" loading={creating || updating} onClick={save}>Saqlash</Button>
+          </>
+        }
+      >
+        {edit && (
+          <>
+            <Input
+              label="Trigger matni"
+              value={edit.triggerText}
+              onChange={(e) => setEdit({ ...edit, triggerText: e.target.value })}
+              placeholder="Masalan: STOP"
+            />
+            <Textarea
+              label="Javob matni"
+              rows={3}
+              value={edit.replyBody}
+              onChange={(e) => setEdit({ ...edit, replyBody: e.target.value })}
+            />
+            <Select
+              label="Moslik turi"
+              value={edit.matchType}
+              onChange={(e) => setEdit({ ...edit, matchType: e.target.value as AutoReplyMatchType })}
+              options={[
+                { value: 'CONTAINS', label: 'Ichida bor' },
+                { value: 'EXACT', label: 'Aniq mos' },
+                { value: 'PREFIX', label: 'Boshlanishi' },
+              ]}
+            />
+            <label className="row" style={{ cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                className="table-checkbox"
+                checked={edit.enabled}
+                onChange={(e) => setEdit({ ...edit, enabled: e.target.checked })}
+              />
+              Qoida yoqilgan
+            </label>
+          </>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Qoidani o‘chirish"
+        message={`"${toDelete?.triggerText}" qoidasi o‘chirilsinmi?`}
+        confirmLabel="O‘chirish"
+        danger
+        loading={deleting}
+        onConfirm={remove}
+        onClose={() => setToDelete(null)}
       />
-    </div>
+    </>
   );
 }

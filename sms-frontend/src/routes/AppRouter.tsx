@@ -1,41 +1,60 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Sidebar } from '../components/Sidebar/Sidebar';
-import { Navbar } from '../components/Navbar/Navbar';
-import { AppFooter } from '../components/AppFooter/AppFooter';
-import Dashboard from '../pages/Dashboard';
-import Servers from '../pages/Servers';
-import Messages from '../pages/Messages';
-import Templates from '../pages/Templates';
-import Contacts from '../pages/Contacts';
-import ApiSettings from '../pages/ApiSettings';
-import StubPage from '../pages/StubPage';
-import AutoReply from '../pages/AutoReply';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AppShell } from '../components/layout/AppShell';
+import { LoginPage } from '../pages/auth/LoginPage';
+import { RegisterPage } from '../pages/auth/RegisterPage';
+import { DashboardPage } from '../pages/dashboard/DashboardPage';
+import { CampaignsListPage } from '../pages/campaigns/CampaignsListPage';
+import { CampaignCreatePage } from '../pages/campaigns/CampaignCreatePage';
+import { CampaignDetailPage } from '../pages/campaigns/CampaignDetailPage';
+import { ContactsPage } from '../pages/contacts/ContactsPage';
+import { DevicesPage } from '../pages/devices/DevicesPage';
+import { TemplatesPage } from '../pages/templates/TemplatesPage';
+import { AutoReplyPage } from '../pages/autoReply/AutoReplyPage';
+import { SmsLogsPage } from '../pages/smsLogs/SmsLogsPage';
+import { MySubscriptionPage } from '../pages/subscription/MySubscriptionPage';
+import { ProfilePage } from '../pages/profile/ProfilePage';
+import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
+import { MembersPage } from '../pages/admin/MembersPage';
+import { MemberDetailPage } from '../pages/admin/MemberDetailPage';
+import { AdminSubscriptionsPage } from '../pages/admin/AdminSubscriptionsPage';
+import { AdminSmsLogsPage } from '../pages/admin/AdminSmsLogsPage';
+import { ProtectedRoute } from './ProtectedRoute';
+import { RoleRoute } from './RoleRoute';
+import { useUnauthorizedRedirect } from './useUnauthorizedRedirect';
 
 export function AppRouter() {
+  useUnauthorizedRedirect();
+
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <div className="app-shell__main">
-        <Navbar />
-        <main className="app-shell__content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/profile" element={<StubPage title="Profil" />} />
-            <Route path="/servers" element={<Servers />} />
-            <Route path="/blacklist" element={<StubPage title="Qora ro‘yxat" />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/send" element={<StubPage title="Xabar yuborish" />} />
-            <Route path="/ussd" element={<StubPage title="USSD" />} />
-            <Route path="/auto-reply" element={<AutoReply />} />
-            <Route path="/api-settings" element={<ApiSettings />} />
-            <Route path="/subscriptions" element={<StubPage title="Obuna tariflari" />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <AppFooter />
-      </div>
-    </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppShell />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="campaigns" element={<CampaignsListPage />} />
+          <Route path="campaigns/new" element={<CampaignCreatePage />} />
+          <Route path="campaigns/:id" element={<CampaignDetailPage />} />
+          <Route path="contacts" element={<ContactsPage />} />
+          <Route path="devices" element={<DevicesPage />} />
+          <Route path="templates" element={<TemplatesPage />} />
+          <Route path="auto-reply" element={<AutoReplyPage />} />
+          <Route path="sms-logs" element={<SmsLogsPage />} />
+          <Route path="subscription" element={<MySubscriptionPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+
+          <Route path="admin" element={<RoleRoute />}>
+            <Route index element={<AdminDashboardPage />} />
+            <Route path="members" element={<MembersPage />} />
+            <Route path="members/:id" element={<MemberDetailPage />} />
+            <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+            <Route path="sms-logs" element={<AdminSmsLogsPage />} />
+          </Route>
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
