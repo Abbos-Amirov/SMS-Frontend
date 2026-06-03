@@ -44,7 +44,7 @@ export function MembersPage() {
       header: 'Holat',
       render: (m) => <StatusPill tone={memberStatusTone[m.memberStatus]} label={memberStatusLabel[m.memberStatus]} />,
     },
-    { key: 'campaigns', header: 'Kampaniya', render: (m) => m.memberCampaigns },
+    { key: 'campaigns', header: 'Xabarlar', render: (m) => m.memberCampaigns },
     { key: 'devices', header: 'Qurilma', render: (m) => m.memberDevices },
     { key: 'createdAt', header: 'Ro‘yxatdan', render: (m) => <span className="muted">{formatDate(m.createdAt)}</span> },
     {

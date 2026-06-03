@@ -15,6 +15,7 @@ export const apiSlice = createApi({
     'SmsLog',
     'Template',
     'AutoReply',
+    'Plan',
   ],
   endpoints: () => ({}),
 });

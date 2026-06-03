@@ -157,7 +157,7 @@ export function AutoReplyPage() {
         {edit && (
           <>
             <Input
-              label="Trigger matni"
+              label="Kalit so‘z"
               value={edit.triggerText}
               onChange={(e) => setEdit({ ...edit, triggerText: e.target.value })}
               placeholder="Masalan: STOP"

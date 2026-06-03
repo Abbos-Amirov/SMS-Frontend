@@ -43,7 +43,7 @@ export function DashboardPage() {
               icon={<IconMinusCircle width={20} height={20} />}
             />
             <StatCard
-              label="Kampaniyalar"
+              label="Xabarlar"
               value={formatNumber(data.campaigns.total)}
               hint={`${data.campaigns.sending} ta yuborilmoqda`}
               icon={<IconSend width={18} height={18} />}

@@ -43,13 +43,15 @@ export function Topbar({ onMenu }: TopbarProps) {
       <div className="topbar__user">
         <div>
           <div className="topbar__user-name">
-            {member?.memberFirstName} {member?.memberLastName}
+            {member?.memberFirstName}
           </div>
           <div className="topbar__user-role">
             {member ? memberRoleLabel[member.memberRole] : ''}
           </div>
         </div>
-        <div className="avatar">{initials}</div>
+        <div className="avatar">
+          {member?.memberImage ? <img src={member.memberImage} alt="Profil rasmi" /> : initials}
+        </div>
       </div>
 
       <button className="topbar__icon-btn" onClick={onLogout} aria-label="Chiqish" title="Chiqish">

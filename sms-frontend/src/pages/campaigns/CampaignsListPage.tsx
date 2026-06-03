@@ -50,11 +50,11 @@ export function CampaignsListPage() {
   return (
     <>
       <PageHeader
-        title="Kampaniyalar"
-        subtitle="SMS tarqatish kampaniyalari."
+        title="Xabarlar"
+        subtitle="Yuborilgan SMS xabarlar."
         actions={
           <Button variant="primary" iconLeft={<IconSend width={16} height={16} />} onClick={() => navigate('/campaigns/new')}>
-            Yangi kampaniya
+            Yangi xabar
           </Button>
         }
       />
@@ -82,8 +82,8 @@ export function CampaignsListPage() {
           rowKey={(c) => c._id}
           loading={isLoading}
           error={isError}
-          emptyTitle="Kampaniya yo‘q"
-          emptyMessage="Birinchi kampaniyangizni yarating."
+          emptyTitle="Xabar yo‘q"
+          emptyMessage="Birinchi xabaringizni yuboring."
         />
         {data && data.total > 0 && <Pagination page={page} limit={LIMIT} total={data.total} onPage={setPage} />}
       </Card>

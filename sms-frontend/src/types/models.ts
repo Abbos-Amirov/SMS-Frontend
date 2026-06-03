@@ -109,6 +109,7 @@ export interface ContactGroup {
   name: string;
   description?: string;
   color: string;
+  count?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -124,6 +125,23 @@ export interface Subscription {
   dailySmsLimit?: number | null;
   note?: string;
   activatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Plan {
+  _id: string;
+  code: SubscriptionPlan;
+  name: string;
+  price: number | null;
+  currency: string;
+  dailySmsLimit: number | null;
+  deviceLimit: number | null;
+  durationDays: number | null;
+  description: string;
+  features: string[];
+  order: number;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

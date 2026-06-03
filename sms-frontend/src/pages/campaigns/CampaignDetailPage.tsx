@@ -24,7 +24,7 @@ export function CampaignDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   if (isLoading) return <Skeleton height={260} />;
-  if (isError || !data) return <ErrorState message="Kampaniya topilmadi." />;
+  if (isError || !data) return <ErrorState message="Xabar topilmadi." />;
 
   const p = data.progress;
   const total = data.totalCount || 1;
@@ -34,7 +34,7 @@ export function CampaignDetailPage() {
   const doCancel = async () => {
     try {
       await cancelCampaign(id).unwrap();
-      toast('success', 'Kampaniya bekor qilindi.');
+      toast('success', 'Xabar bekor qilindi.');
       setConfirmOpen(false);
     } catch {
       toast('error', 'Bekor qilishda xatolik.');
@@ -104,7 +104,7 @@ export function CampaignDetailPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Kampaniyani bekor qilish"
+        title="Xabarni bekor qilish"
         message="Qolgan yuborilmagan xabarlar bekor qilinadi. Davom etilsinmi?"
         confirmLabel="Ha, bekor qilish"
         danger

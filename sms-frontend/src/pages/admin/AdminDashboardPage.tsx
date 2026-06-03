@@ -35,7 +35,7 @@ export function AdminDashboardPage() {
               icon={<IconContacts width={18} height={18} />}
             />
             <StatCard
-              label="Kampaniyalar"
+              label="Xabarlar"
               value={formatNumber(data.campaigns.total)}
               hint={`${data.campaigns.sending} yuborilmoqda`}
               icon={<IconSend width={18} height={18} />}

@@ -25,3 +25,16 @@ export function formatNumber(value?: number | null): string {
   if (value == null) return '0';
   return new Intl.NumberFormat('en-US').format(value);
 }
+
+/** A limit value where null/undefined means unlimited. */
+export function formatLimit(value: number | null | undefined, unit?: string): string {
+  if (value == null) return 'Cheksiz';
+  return unit ? `${formatNumber(value)} ${unit}` : formatNumber(value);
+}
+
+/** Plan price; null/undefined means the price is negotiated. */
+export function formatPrice(price: number | null | undefined, currency = 'UZS'): string {
+  if (price == null) return 'Kelishuv asosida';
+  const label = currency === 'UZS' ? "so'm" : currency;
+  return `${formatNumber(price)} ${label}`;
+}

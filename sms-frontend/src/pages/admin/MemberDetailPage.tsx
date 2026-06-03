@@ -6,6 +6,7 @@ import {
   useUpdateMemberMutation,
 } from '../../api/endpoints/memberApi';
 import { useActivateSubscriptionMutation } from '../../api/endpoints/subscriptionApi';
+import { useGetAdminPlansQuery } from '../../api/endpoints/planApi';
 import { IconChevronLeft } from '../../components/icons/UiIcons';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -30,6 +31,7 @@ export function MemberDetailPage() {
   const [updateMember, { isLoading: updating }] = useUpdateMemberMutation();
   const [deleteMember, { isLoading: deleting }] = useDeleteMemberMutation();
   const [activate, { isLoading: activating }] = useActivateSubscriptionMutation();
+  const { data: plans } = useGetAdminPlansQuery();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
@@ -37,6 +39,20 @@ export function MemberDetailPage() {
   const [durationDays, setDurationDays] = useState('30');
   const [deviceLimit, setDeviceLimit] = useState('');
   const [dailySmsLimit, setDailySmsLimit] = useState('');
+
+  // Prefill the limits from the chosen plan's catalog (null => empty = unlimited).
+  const applyPlan = (code: SubscriptionPlan) => {
+    const p = plans?.find((x) => x.code === code);
+    if (!p) return;
+    setDurationDays(p.durationDays == null ? '' : String(p.durationDays));
+    setDeviceLimit(p.deviceLimit == null ? '' : String(p.deviceLimit));
+    setDailySmsLimit(p.dailySmsLimit == null ? '' : String(p.dailySmsLimit));
+  };
+
+  const openSub = () => {
+    applyPlan(plan);
+    setSubOpen(true);
+  };
 
   if (isLoading) return <Skeleton height={260} />;
   if (isError || !m) return <ErrorState message="Aʼzo topilmadi." />;
@@ -108,7 +124,7 @@ export function MemberDetailPage() {
           <div className="detail-grid">
             <div className="detail-item"><div className="l">Kompaniya</div><div className="v">{m.memberCompanyName || '—'}</div></div>
             <div className="detail-item"><div className="l">Telefon</div><div className="v">{m.memberPhone || '—'}</div></div>
-            <div className="detail-item"><div className="l">Kampaniyalar</div><div className="v">{m.memberCampaigns}</div></div>
+            <div className="detail-item"><div className="l">Xabarlar</div><div className="v">{m.memberCampaigns}</div></div>
             <div className="detail-item"><div className="l">Qurilmalar</div><div className="v">{m.memberDevices}</div></div>
             <div className="detail-item"><div className="l">Kontaktlar</div><div className="v">{m.memberContacts}</div></div>
             <div className="detail-item"><div className="l">Yuborilgan SMS</div><div className="v">{m.memberSentSms}</div></div>
@@ -129,7 +145,7 @@ export function MemberDetailPage() {
             {m.memberRole === 'ADMIN' && isOwner && (
               <Button loading={updating} onClick={() => setRole('USER')}>Foydalanuvchiga tushirish</Button>
             )}
-            <Button variant="primary" onClick={() => setSubOpen(true)}>Obuna faollashtirish</Button>
+            <Button variant="primary" onClick={openSub}>Obuna faollashtirish</Button>
             <div className="toolbar__spacer" />
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>O‘chirish</Button>
           </div>
@@ -150,12 +166,20 @@ export function MemberDetailPage() {
         <Select
           label="Tarif"
           value={plan}
-          onChange={(e) => setPlan(e.target.value as SubscriptionPlan)}
-          options={[
-            { value: 'BASIC', label: 'Basic' },
-            { value: 'PRO', label: 'Pro' },
-            { value: 'ENTERPRISE', label: 'Enterprise' },
-          ]}
+          onChange={(e) => {
+            const code = e.target.value as SubscriptionPlan;
+            setPlan(code);
+            applyPlan(code);
+          }}
+          options={
+            plans && plans.length
+              ? plans.map((p) => ({ value: p.code, label: p.name }))
+              : [
+                  { value: 'BASIC', label: 'Basic' },
+                  { value: 'PRO', label: 'Pro' },
+                  { value: 'ENTERPRISE', label: 'Enterprise' },
+                ]
+          }
         />
         <Input
           label="Muddat (kun, bo‘sh = muddatsiz)"

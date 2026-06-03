@@ -30,7 +30,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     items: [
       { to: '/', label: 'Boshqaruv paneli', icon: <IconChart />, end: true },
-      { to: '/campaigns', label: 'Kampaniyalar', icon: <IconSend /> },
+      { to: '/campaigns', label: 'Xabarlar', icon: <IconSend /> },
       { to: '/contacts', label: 'Kontaktlar', icon: <IconContacts /> },
       { to: '/devices', label: 'Qurilmalar', icon: <IconDevice /> },
     ],
@@ -56,6 +56,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/admin', label: 'Admin panel', icon: <IconGrid />, end: true },
       { to: '/admin/members', label: 'Aʼzolar', icon: <IconContacts /> },
+      { to: '/admin/plans', label: 'Tariflar', icon: <IconCredit /> },
       { to: '/admin/subscriptions', label: 'Obunalar', icon: <IconShield /> },
       { to: '/admin/sms-logs', label: 'Global SMS jurnali', icon: <IconInbox /> },
     ],

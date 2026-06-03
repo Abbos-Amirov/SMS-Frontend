@@ -17,6 +17,10 @@ export const contactGroupApi = apiSlice.injectEndpoints({
       query: (data) => ({ url: '/contact-group', method: 'POST', data }),
       invalidatesTags: ['ContactGroup'],
     }),
+    updateContactGroup: build.mutation<ContactGroup, { id: string; data: ContactGroupBody }>({
+      query: ({ id, data }) => ({ url: `/contact-group/${id}`, method: 'POST', data }),
+      invalidatesTags: ['ContactGroup', 'Contact'],
+    }),
     deleteContactGroup: build.mutation<{ success: boolean }, string>({
       query: (id) => ({ url: `/contact-group/${id}/delete`, method: 'POST' }),
       invalidatesTags: ['ContactGroup', 'Contact'],
@@ -24,4 +28,9 @@ export const contactGroupApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetContactGroupsQuery, useCreateContactGroupMutation, useDeleteContactGroupMutation } = contactGroupApi;
+export const {
+  useGetContactGroupsQuery,
+  useCreateContactGroupMutation,
+  useUpdateContactGroupMutation,
+  useDeleteContactGroupMutation,
+} = contactGroupApi;

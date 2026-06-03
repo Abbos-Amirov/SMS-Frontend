@@ -89,7 +89,7 @@ export function CampaignCreatePage() {
         groupIds: mode === 'groups' ? Array.from(selectedGroups) : undefined,
         phones: mode === 'phones' ? phoneList : undefined,
       }).unwrap();
-      toast('success', 'Kampaniya yaratildi.');
+      toast('success', schedule === 'now' ? 'Xabar yuborildi.' : 'Xabar rejalashtirildi.');
       navigate(`/campaigns/${res._id}`);
     } catch (err) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Xatolik';
@@ -102,12 +102,12 @@ export function CampaignCreatePage() {
   if (!sub || sub.status !== 'ACTIVE') {
     return (
       <>
-        <PageHeader title="Yangi kampaniya" />
+        <PageHeader title="Yangi xabar" />
         <Card>
           <EmptyState
             icon={<IconCredit />}
             title="Faol obuna talab qilinadi"
-            message="Kampaniya yuborish uchun administrator obunani faollashtirishi kerak."
+            message="Xabar yuborish uchun administrator obunani faollashtirishi kerak."
             action={
               <Button variant="ghost" onClick={() => navigate('/subscription')}>
                 Obunani ko‘rish
@@ -121,11 +121,11 @@ export function CampaignCreatePage() {
 
   return (
     <>
-      <PageHeader title="Yangi kampaniya" subtitle="Xabar, qabul qiluvchilar va yuborish vaqtini belgilang." />
+      <PageHeader title="Yangi xabar" subtitle="Matn, qabul qiluvchilar va yuborish vaqtini belgilang." />
 
       <div className="stack" style={{ maxWidth: 760 }}>
-        <Card title="Xabar">
-          <Input label="Sarlavha" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Kampaniya nomi" />
+        <Card title="Xabar matni">
+          <Input label="Sarlavha" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Xabar nomi" />
           {templates && templates.list.length > 0 && (
             <Select
               label="Shablondan tanlash (ixtiyoriy)"

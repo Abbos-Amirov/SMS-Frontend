@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUpdateMeMutation } from '../../api/endpoints/authApi';
 import { setMember } from '../../features/auth/AuthSlice';
 import { useAuth } from '../../features/auth/useAuth';
@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/FormFields';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatusPill } from '../../components/ui/StatusPill';
+import { fileToAvatarDataUrl } from '../../lib/image';
 import { memberRoleLabel, memberStatusLabel, memberStatusTone } from '../../lib/labels';
 import { useAppDispatch } from '../../store';
 
@@ -16,6 +17,7 @@ export function ProfilePage() {
   const dispatch = useAppDispatch();
   const toast = useToast();
   const [updateMe, { isLoading }] = useUpdateMeMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     memberFirstName: '',
@@ -23,6 +25,8 @@ export function ProfilePage() {
     memberPhone: '',
     memberCompanyName: '',
   });
+  // null = unchanged, '' = remove, string = new image
+  const [image, setImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (member) {
@@ -32,20 +36,40 @@ export function ProfilePage() {
         memberPhone: member.memberPhone ?? '',
         memberCompanyName: member.memberCompanyName ?? '',
       });
+      setImage(null);
     }
   }, [member]);
 
+  if (!member) return null;
+
+  const previewImage = image !== null ? image : member.memberImage ?? '';
+  const initials =
+    `${member.memberFirstName?.[0] ?? ''}${member.memberLastName?.[0] ?? ''}`.toUpperCase() ||
+    member.memberEmail[0].toUpperCase();
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file
+    if (!file) return;
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      setImage(dataUrl);
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Rasmni yuklashda xatolik.');
+    }
+  };
+
   const save = async () => {
     try {
-      const updated = await updateMe(form).unwrap();
+      const payload = { ...form, ...(image !== null ? { memberImage: image } : {}) };
+      const updated = await updateMe(payload).unwrap();
       dispatch(setMember(updated));
+      setImage(null);
       toast('success', 'Profil yangilandi.');
     } catch {
       toast('error', 'Saqlashda xatolik.');
     }
   };
-
-  if (!member) return null;
 
   return (
     <>
@@ -59,6 +83,35 @@ export function ProfilePage() {
             </div>
             <StatusPill tone={memberStatusTone[member.memberStatus]} label={memberStatusLabel[member.memberStatus]} />
           </div>
+
+          <div className="profile-avatar-row">
+            <div className="avatar avatar--lg">
+              {previewImage ? <img src={previewImage} alt="Profil rasmi" /> : initials}
+            </div>
+            <div className="stack" style={{ gap: 8 }}>
+              <div className="row" style={{ gap: 8 }}>
+                <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  Rasm yuklash
+                </Button>
+                {previewImage && (
+                  <Button variant="ghost" size="sm" onClick={() => setImage('')}>
+                    Oʻchirish
+                  </Button>
+                )}
+              </div>
+              <span className="muted" style={{ fontSize: 12 }}>
+                JPG yoki PNG, 4 MB gacha. Saqlash tugmasini bosing.
+              </span>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={onPickFile}
+            />
+          </div>
+
           <div className="form-row">
             <Input
               label="Ism"

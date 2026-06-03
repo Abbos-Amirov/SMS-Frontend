@@ -10,6 +10,7 @@ import {
   useCreateContactGroupMutation,
   useDeleteContactGroupMutation,
   useGetContactGroupsQuery,
+  useUpdateContactGroupMutation,
 } from '../../api/endpoints/contactGroupApi';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -25,9 +26,18 @@ import { contactStatusLabel, contactStatusTone } from '../../lib/labels';
 import { formatDate } from '../../lib/format';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
 import { parseContactsCsv } from '../../lib/csv';
-import type { Contact, ContactStatus } from '../../types';
+import type { Contact, ContactGroup, ContactStatus } from '../../types';
 
 const LIMIT = 20;
+
+const GROUP_COLORS = ['#4d8cff', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#ec4899', '#64748b'];
+
+interface GroupEdit {
+  id?: string;
+  name: string;
+  description: string;
+  color: string;
+}
 
 interface EditState {
   id?: string;
@@ -64,14 +74,16 @@ export function ContactsPage() {
   const [deleteContact, { isLoading: deleting }] = useDeleteContactMutation();
   const [importContacts, { isLoading: importing }] = useImportContactsMutation();
   const [createGroup, { isLoading: creatingGroup }] = useCreateContactGroupMutation();
-  const [deleteGroup] = useDeleteContactGroupMutation();
+  const [updateGroup, { isLoading: updatingGroup }] = useUpdateContactGroupMutation();
+  const [deleteGroup, { isLoading: deletingGroup }] = useDeleteContactGroupMutation();
 
   const [edit, setEdit] = useState<EditState | null>(null);
   const [toDelete, setToDelete] = useState<Contact | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [importGroupId, setImportGroupId] = useState('');
-  const [groupName, setGroupName] = useState('');
+  const [groupEdit, setGroupEdit] = useState<GroupEdit | null>(null);
+  const [groupToDelete, setGroupToDelete] = useState<ContactGroup | null>(null);
 
   const save = async () => {
     if (!edit) return;
@@ -118,14 +130,40 @@ export function ContactsPage() {
     }
   };
 
-  const addGroup = async () => {
-    if (!groupName.trim()) return;
+  const saveGroup = async () => {
+    if (!groupEdit) return;
+    if (!groupEdit.name.trim()) {
+      toast('error', 'Guruh nomini kiriting.');
+      return;
+    }
+    const payload = {
+      name: groupEdit.name.trim(),
+      description: groupEdit.description.trim() || undefined,
+      color: groupEdit.color,
+    };
     try {
-      await createGroup({ name: groupName.trim() }).unwrap();
-      setGroupName('');
-      toast('success', 'Guruh yaratildi.');
+      if (groupEdit.id) {
+        await updateGroup({ id: groupEdit.id, data: payload }).unwrap();
+        toast('success', 'Guruh yangilandi.');
+      } else {
+        await createGroup(payload).unwrap();
+        toast('success', 'Guruh yaratildi.');
+      }
+      setGroupEdit(null);
     } catch {
-      toast('error', 'Guruh yaratilmadi. Nomi takrorlanmaganini tekshiring.');
+      toast('error', 'Guruh saqlanmadi. Nomi takrorlanmaganini tekshiring.');
+    }
+  };
+
+  const removeGroup = async () => {
+    if (!groupToDelete) return;
+    try {
+      await deleteGroup(groupToDelete._id).unwrap();
+      toast('success', 'Guruh o‘chirildi.');
+      if (groupFilter === groupToDelete._id) setGroupFilter('');
+      setGroupToDelete(null);
+    } catch {
+      toast('error', 'Guruh o‘chirilmadi.');
     }
   };
 
@@ -147,7 +185,12 @@ export function ContactsPage() {
       header: 'Guruhlar',
       render: (c) =>
         c.groupIds?.length
-          ? groups.filter((g) => c.groupIds.includes(g._id)).map((g) => <span key={g._id} className="tag-chip">{g.name}</span>)
+          ? groups.filter((g) => c.groupIds.includes(g._id)).map((g) => (
+              <span key={g._id} className="tag-chip">
+                <span className="group-dot group-dot--sm" style={{ background: g.color }} />
+                {g.name}
+              </span>
+            ))
           : <span className="muted">-</span>,
     },
     {
@@ -197,7 +240,7 @@ export function ContactsPage() {
     <>
       <PageHeader
         title="Kontaktlar"
-        subtitle="Kampaniyalar uchun telefon raqamlari bazasi."
+        subtitle="Xabar yuborish uchun telefon raqamlari bazasi."
         actions={
           <span className="row">
             <Button iconLeft={<IconUpload width={18} height={18} />} onClick={() => { setImportErrors([]); setImportOpen(true); }}>
@@ -210,19 +253,49 @@ export function ContactsPage() {
         }
       />
 
-      <Card title="Kontakt guruhlari">
-        <div className="toolbar">
-          <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Masalan: VIP mijozlar" />
-          <Button loading={creatingGroup} onClick={addGroup}>Guruh yaratish</Button>
-        </div>
-        <div className="row" style={{ flexWrap: 'wrap', marginTop: 12 }}>
-          {groups.map((group) => (
-            <span key={group._id} className="tag-chip">
-              {group.name}
-              <button type="button" onClick={() => deleteGroup(group._id)} aria-label="Guruhni o‘chirish">×</button>
-            </span>
-          ))}
-        </div>
+      <Card
+        title="Kontakt guruhlari"
+        actions={
+          <Button
+            size="sm"
+            variant="primary"
+            iconLeft={<IconPlus width={16} height={16} />}
+            onClick={() => setGroupEdit({ name: '', description: '', color: GROUP_COLORS[0] })}
+          >
+            Yangi guruh
+          </Button>
+        }
+      >
+        {groups.length === 0 ? (
+          <p className="muted" style={{ margin: 0 }}>
+            Hali guruh yo‘q. Kontaktlarni toifalarga ajratib, xabarni butun guruhga yuborish uchun guruh yarating.
+          </p>
+        ) : (
+          <div className="group-list">
+            {groups.map((group) => (
+              <div key={group._id} className="group-item">
+                <span className="group-dot" style={{ background: group.color }} />
+                <div className="group-item__main">
+                  <div className="group-item__name">
+                    {group.name}
+                    <span className="muted" style={{ fontWeight: 400 }}> · {group.count ?? 0} ta kontakt</span>
+                  </div>
+                  {group.description && <div className="muted group-item__desc">{group.description}</div>}
+                </div>
+                <button
+                  className="icon-btn"
+                  onClick={() => setGroupEdit({ id: group._id, name: group.name, description: group.description ?? '', color: group.color })}
+                  aria-label="Tahrirlash"
+                >
+                  <IconEdit width={16} height={16} />
+                </button>
+                <button className="icon-btn icon-btn--danger" onClick={() => setGroupToDelete(group)} aria-label="O‘chirish">
+                  <IconTrash width={16} height={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card bodyless>
@@ -349,6 +422,60 @@ export function ContactsPage() {
           </div>
         )}
       </Modal>
+
+      <Modal
+        open={!!groupEdit}
+        title={groupEdit?.id ? 'Guruhni tahrirlash' : 'Yangi guruh'}
+        onClose={() => setGroupEdit(null)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setGroupEdit(null)}>Bekor qilish</Button>
+            <Button variant="primary" loading={creatingGroup || updatingGroup} onClick={saveGroup}>Saqlash</Button>
+          </>
+        }
+      >
+        {groupEdit && (
+          <>
+            <Input
+              label="Nomi"
+              value={groupEdit.name}
+              onChange={(e) => setGroupEdit({ ...groupEdit, name: e.target.value })}
+              placeholder="Masalan: VIP mijozlar"
+            />
+            <Input
+              label="Tavsif (ixtiyoriy)"
+              value={groupEdit.description}
+              onChange={(e) => setGroupEdit({ ...groupEdit, description: e.target.value })}
+            />
+            <div className="field">
+              <span className="field__label">Rang</span>
+              <div className="color-swatches">
+                {GROUP_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`color-swatch ${groupEdit.color === color ? 'is-selected' : ''}`}
+                    style={{ background: color }}
+                    onClick={() => setGroupEdit({ ...groupEdit, color })}
+                    aria-label={color}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!groupToDelete}
+        title="Guruhni o‘chirish"
+        message={`"${groupToDelete?.name}" guruhi o‘chiriladi va barcha kontaktlardan olib tashlanadi. Kontaktlarning o‘zi o‘chmaydi. Davom etilsinmi?`}
+        confirmLabel="O‘chirish"
+        danger
+        loading={deletingGroup}
+        onConfirm={removeGroup}
+        onClose={() => setGroupToDelete(null)}
+      />
     </>
   );
 }

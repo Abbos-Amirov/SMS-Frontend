@@ -3,6 +3,15 @@ import qs from 'qs';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4008';
 
+// Guard against shipping a production build that still points at localhost — a
+// common deploy mistake that silently breaks every request.
+if (import.meta.env.PROD && /localhost|127\.0\.0\.1/.test(baseURL)) {
+  console.error(
+    '[config] VITE_API_BASE_URL is missing or points at localhost in a production build. ' +
+      'Set it to your https API URL (e.g. https://api.example.com) before building.',
+  );
+}
+
 export const AUTH_TOKEN_KEY = 'auth_token';
 export const AUTH_MEMBER_KEY = 'auth_member';
 
