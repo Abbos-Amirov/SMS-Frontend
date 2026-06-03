@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+sms-frontend/dist/
+
+# Local env (secrets handled outside git)
+.env
+.env.local
+.env.*.local
+
+# OS / tooling
+.DS_Store
+*.log
+yarn.lock
