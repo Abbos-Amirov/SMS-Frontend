@@ -5,7 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true,
+    // A VPS/container dev server has no desktop browser to open.
+    open: false,
   },
   build: {
     // Split big/stable vendor libs out of the app chunk for better caching and
