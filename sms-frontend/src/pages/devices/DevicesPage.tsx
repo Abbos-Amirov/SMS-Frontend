@@ -3,11 +3,11 @@ import { useCreateDeviceMutation, useGetDevicesQuery, useResetDeviceCodeMutation
 import { IconCopy, IconDevice, IconPlus } from '../../components/icons/UiIcons';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { DataTable, type Column } from '../../components/ui/DataTable';
 import { Input } from '../../components/ui/FormFields';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { StatusPill } from '../../components/ui/StatusPill';
+import { ErrorState, Skeleton } from '../../components/ui/states';
 import { useToast } from '../../features/ui/useToast';
 import { formatRelative } from '../../lib/format';
 import { deviceStatusLabel, deviceStatusTone } from '../../lib/labels';
@@ -65,82 +65,55 @@ export function DevicesPage() {
     }
   };
 
-  const columns: Column<Device>[] = [
-    { key: 'name', header: 'Nomi', render: (d) => <strong>{d.name}</strong> },
-    {
-      key: 'status',
-      header: 'Holat',
-      render: (d) => <StatusPill tone={deviceStatusTone[d.status]} label={deviceStatusLabel[d.status]} />,
-    },
-    {
-      key: 'actions',
-      header: '',
-      align: 'right',
-      render: (d) => (
-        <span className="row" style={{ justifyContent: 'flex-end' }}>
-          <Button size="sm" onClick={() => resetPairing(d)}>Yangi kod</Button>
-          {d.status !== 'BLOCKED' && <Button size="sm" variant="danger" onClick={() => revoke(d)}>Bloklash</Button>}
-        </span>
-      ),
-    },
-    {
-      key: 'battery',
-      header: 'Batareya',
-      render: (d) => (d.batteryLevel != null ? `${d.batteryLevel}%` : <span className="muted">—</span>),
-    },
-    {
-      key: 'sim',
-      header: 'Tanlangan SIM',
-      render: (d) => d.simCarrier ? (
-        <span>SIM {Number(d.simSlotIndex ?? 0) + 1} · {d.simCarrier}</span>
-      ) : <span className="muted">—</span>,
-    },
-    { key: 'network', header: 'Tarmoq', render: (d) => d.networkType || <span className="muted">—</span> },
-    { key: 'limit', header: 'Limit/min', render: (d) => d.sendLimitPerMinute },
-    {
-      key: 'lastSeenAt',
-      header: 'Oxirgi faollik',
-      render: (d) => <span className="muted">{d.lastSeenAt ? formatRelative(d.lastSeenAt) : 'hech qachon'}</span>,
-    },
-    {
-      key: 'code',
-      header: 'Kod',
-      render: (d) =>
-        d.status === 'OFFLINE' && !d.pairedAt ? (
-          <span className="mono">{d.code}</span>
-        ) : (
-          <span className="muted">ulangan</span>
-        ),
-    },
-  ];
+  const device = data?.list[0];
 
   return (
     <>
       <PageHeader
-        title="Qurilmalar"
-        subtitle="SMS yuboruvchi Android qurilmalarni boshqaring."
-        actions={
+        title="Yuboruvchi telefon"
+        subtitle="TezkorSMS hisobiga bitta Android telefon ulanadi."
+        actions={!device && !isLoading ? (
           <Button variant="primary" iconLeft={<IconPlus width={18} height={18} />} onClick={() => setCreatingOpen(true)}>
-            Qurilma qo‘shish
+            Telefonni ulash
           </Button>
-        }
+        ) : undefined}
       />
 
-      <Card bodyless>
-        <DataTable
-          columns={columns}
-          rows={data?.list ?? []}
-          rowKey={(d) => d._id}
-          loading={isLoading}
-          error={isError}
-          emptyTitle="Qurilma yo‘q"
-          emptyMessage="Qurilma qo‘shing va mobil ilovada juftlash kodini kiriting."
-        />
-      </Card>
+      {isLoading ? <Skeleton height={220} /> : isError ? (
+        <Card><ErrorState message="Telefon holatini yuklab bo‘lmadi." /></Card>
+      ) : device ? (
+        <Card title={device.name} actions={<StatusPill tone={deviceStatusTone[device.status]} label={deviceStatusLabel[device.status]} />}>
+          <div className="detail-grid">
+            <div className="detail-item"><div className="l">Faol SIM</div><div className="v">{device.simCarrier ? `SIM ${Number(device.simSlotIndex ?? 0) + 1} · ${device.simCarrier}` : 'Tanlanmagan'}</div></div>
+            <div className="detail-item"><div className="l">Batareya</div><div className="v">{device.batteryLevel != null ? `${device.batteryLevel}%` : '—'}</div></div>
+            <div className="detail-item"><div className="l">Tarmoq</div><div className="v">{device.networkType || '—'}</div></div>
+            <div className="detail-item"><div className="l">Oxirgi aloqa</div><div className="v">{device.lastSeenAt ? formatRelative(device.lastSeenAt) : 'Hali ulanmagan'}</div></div>
+          </div>
+          {!device.pairedAt && device.status !== 'BLOCKED' ? (
+            <div className="state-block" style={{ marginTop: 18 }}>
+              <p className="muted" style={{ margin: 0 }}>Bu kodni TezkorSMS mobil ilovasiga kiriting:</p>
+              <button className="code-pill" onClick={() => copyCode(device.code)}>{device.code}<IconCopy /></button>
+            </div>
+          ) : null}
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 18 }}>
+            <Button size="sm" onClick={() => resetPairing(device)}>{device.status === 'BLOCKED' ? 'Qayta ulash' : 'Telefonni almashtirish'}</Button>
+            {device.status !== 'BLOCKED' && <Button size="sm" variant="danger" onClick={() => revoke(device)}>Ulanishni uzish</Button>}
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <div className="state-block">
+            <div className="state-block__icon"><IconDevice /></div>
+            <div className="state-block__title">Yuboruvchi telefon ulanmagan</div>
+            <p className="muted">Android telefon yarating, keyin berilgan kodni mobile ilovaga kiriting.</p>
+            <Button variant="primary" onClick={() => setCreatingOpen(true)}>Telefonni ulash</Button>
+          </div>
+        </Card>
+      )}
 
       <Modal
         open={creatingOpen}
-        title="Yangi qurilma"
+        title="Yuboruvchi telefonni ulash"
         onClose={() => setCreatingOpen(false)}
         footer={
           <>
@@ -148,18 +121,18 @@ export function DevicesPage() {
               Bekor qilish
             </Button>
             <Button variant="primary" loading={creating} onClick={submit}>
-              Yaratish
+              Kod yaratish
             </Button>
           </>
         }
       >
         <p className="muted" style={{ marginTop: 0 }}>
-          Qurilma yaratilgach, bir martalik juftlash kodi beriladi. Uni mobil ilovaga kiriting.
+          Bir martalik juftlash kodi yaratiladi. Uni TezkorSMS mobil ilovasiga kiriting.
         </p>
-        <Input label="Qurilma nomi" value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Samsung-1" />
+        <Input label="Telefon nomi" value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Ofis Samsung" />
       </Modal>
 
-      <Modal open={!!created} title="Qurilma yaratildi" onClose={() => setCreated(null)}>
+      <Modal open={!!created} title="Telefonni mobile ilovaga ulang" onClose={() => setCreated(null)}>
         <div className="state-block" style={{ padding: '12px 0 4px' }}>
           <div className="state-block__icon">
             <IconDevice />

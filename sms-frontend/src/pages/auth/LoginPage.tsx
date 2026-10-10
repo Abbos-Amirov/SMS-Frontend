@@ -42,7 +42,7 @@ export function LoginPage() {
       <form className="auth-card" onSubmit={handleSubmit(onSubmit)}>
         <div className="auth-card__brand">
           <div className="sidebar__logo">S</div>
-          <div className="sidebar__brand-name">NovaSMS</div>
+          <div className="sidebar__brand-name">TezkorSMS</div>
         </div>
         <h1 className="auth-card__title">Tizimga kirish</h1>
         <p className="auth-card__sub">Hisobingizga kiring va boshqaruvni davom eting.</p>

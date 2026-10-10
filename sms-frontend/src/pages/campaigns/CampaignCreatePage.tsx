@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateCampaignMutation } from '../../api/endpoints/campaignApi';
 import { useGetContactsQuery } from '../../api/endpoints/contactApi';
@@ -10,6 +10,7 @@ import { IconCredit } from '../../components/icons/UiIcons';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input, Select, Textarea } from '../../components/ui/FormFields';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { EmptyState, Skeleton } from '../../components/ui/states';
@@ -35,7 +36,7 @@ export function CampaignCreatePage() {
   const [phones, setPhones] = useState('');
   const [schedule, setSchedule] = useState<ScheduleMode>('now');
   const [scheduledAt, setScheduledAt] = useState('');
-  const [deviceId, setDeviceId] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [contactSearch, setContactSearch] = useState('');
   const debounced = useDebouncedValue(contactSearch);
@@ -53,10 +54,6 @@ export function CampaignCreatePage() {
     [devices],
   );
 
-  useEffect(() => {
-    if (!deviceId && senderDevices.length === 1) setDeviceId(senderDevices[0]._id);
-  }, [deviceId, senderDevices]);
-
   const phoneList = useMemo(
     () => phones.split(/[\n,;]+/).map((p) => p.trim()).filter(Boolean),
     [phones],
@@ -67,7 +64,7 @@ export function CampaignCreatePage() {
       ? groups.filter((group) => selectedGroups.has(group._id)).reduce((sum, group) => sum + (group.count ?? 0), 0)
       : phoneList.length;
   const sms = useMemo(() => smsLength(message), [message]);
-  const selectedDevice = senderDevices.find((device) => device._id === deviceId);
+  const selectedDevice = senderDevices[0];
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -85,35 +82,48 @@ export function CampaignCreatePage() {
     });
   };
 
-  const submit = async () => {
+  const validate = () => {
     if (!title.trim() || !message.trim()) {
       toast('error', 'Sarlavha va matn majburiy.');
-      return;
+      return false;
     }
     if (recipientCount === 0) {
       toast('error', 'Kamida bitta qabul qiluvchi tanlang.');
-      return;
+      return false;
     }
-    if (!deviceId) {
-      toast('error', 'SMS yuboradigan qurilmani tanlang.');
-      return;
+    if (!selectedDevice) {
+      toast('error', 'Avval yuboruvchi telefonni ulang.');
+      return false;
     }
     if (schedule === 'later' && !scheduledAt) {
       toast('error', 'Yuborish vaqtini tanlang.');
-      return;
+      return false;
     }
+    if (schedule === 'later' && new Date(scheduledAt).getTime() <= Date.now()) {
+      toast('error', 'Yuborish vaqti kelajakda bo‘lishi kerak.');
+      return false;
+    }
+    return true;
+  };
+
+  const requestSubmit = () => {
+    if (validate()) setConfirmOpen(true);
+  };
+
+  const submit = async () => {
+    if (!validate()) return;
     try {
       const res = await createCampaign({
         title: title.trim(),
         message: message.trim(),
         sendNow: schedule === 'now',
-        deviceId,
         scheduledAt: schedule === 'later' ? new Date(scheduledAt).toISOString() : undefined,
         contactIds: mode === 'contacts' ? Array.from(selected) : undefined,
         groupIds: mode === 'groups' ? Array.from(selectedGroups) : undefined,
         phones: mode === 'phones' ? phoneList : undefined,
       }).unwrap();
-      toast('success', schedule === 'now' ? 'Xabar yuborildi.' : 'Xabar rejalashtirildi.');
+      setConfirmOpen(false);
+      toast('success', schedule === 'now' ? 'Kampaniya yuborish navbatiga qo‘shildi.' : 'Kampaniya rejalashtirildi.');
       navigate(`/campaigns/${res._id}`);
     } catch (err) {
       const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Xatolik';
@@ -178,7 +188,7 @@ export function CampaignCreatePage() {
           </p>
         </Card>
 
-        <Card title="Yuboruvchi qurilma">
+        <Card title="Yuboruvchi telefon">
           {devicesLoading ? (
             <Skeleton height={72} />
           ) : senderDevices.length === 0 ? (
@@ -186,26 +196,27 @@ export function CampaignCreatePage() {
               icon={<IconCredit />}
               title="Ulangan qurilma yo‘q"
               message="Avval Android telefonni juftlang va worker’ni ishga tushiring."
-              action={<Button variant="ghost" onClick={() => navigate('/devices')}>Qurilmalar</Button>}
+              action={<Button variant="ghost" onClick={() => navigate('/devices')}>Telefonni ulash</Button>}
             />
           ) : (
-            <>
-              <Select
-                label="SMS qaysi telefondan yuboriladi?"
-                value={deviceId}
-                placeholder="— qurilmani tanlang —"
-                onChange={(event) => setDeviceId(event.target.value)}
-                options={senderDevices.map((device) => ({
-                  value: device._id,
-                  label: `${device.name} · ${device.status === 'ONLINE' ? 'onlayn' : 'oflayn'}${device.simCarrier ? ` · SIM ${Number(device.simSlotIndex ?? 0) + 1} (${device.simCarrier})` : ''}`,
-                }))}
-              />
+            <div className="sender-summary">
+              <div>
+                <strong>{selectedDevice.name}</strong>
+                <div className="muted">
+                  {selectedDevice.simCarrier
+                    ? `SIM ${Number(selectedDevice.simSlotIndex ?? 0) + 1} · ${selectedDevice.simCarrier}`
+                    : 'SIM hali tanlanmagan'}
+                </div>
+              </div>
+              <span className={`pill ${selectedDevice.status === 'ONLINE' ? 'pill--success' : 'pill--warn'}`}>
+                {selectedDevice.status === 'ONLINE' ? 'Yuborishga tayyor' : 'Telefon oflayn'}
+              </span>
               {selectedDevice?.status !== 'ONLINE' && (
                 <p style={{ color: 'var(--warn)', marginBottom: 0 }}>
                   Qurilma oflayn. Kampaniya navbatda turadi va telefon worker’i online bo‘lganda yuboriladi.
                 </p>
               )}
-            </>
+            </div>
           )}
         </Card>
 
@@ -294,11 +305,37 @@ export function CampaignCreatePage() {
           <Button variant="ghost" onClick={() => navigate('/campaigns')}>
             Bekor qilish
           </Button>
-          <Button variant="primary" loading={creating} onClick={submit}>
+          <Button variant="primary" loading={creating} onClick={requestSubmit}>
             {schedule === 'now' ? `${recipientCount} kishiga yuborish` : 'Rejalashtirish'}
           </Button>
         </div>
       </div>
+
+      <Modal
+        open={confirmOpen}
+        title="Yuborishni tasdiqlang"
+        onClose={() => !creating && setConfirmOpen(false)}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Orqaga</Button>
+            <Button variant="primary" loading={creating} onClick={submit}>
+              {schedule === 'now' ? 'Navbatga qo‘shish' : 'Rejalashtirish'}
+            </Button>
+          </>
+        }
+      >
+        <div className="review-grid">
+          <div><span>Qabul qiluvchilar</span><strong>{recipientCount} tagacha</strong></div>
+          <div><span>Har bir xabar</span><strong>{sms.segments} SMS segment</strong></div>
+          <div><span>Taxminiy jami</span><strong>{recipientCount * sms.segments} SMS</strong></div>
+          <div><span>Yuboruvchi</span><strong>{selectedDevice?.name}</strong></div>
+          <div><span>SIM</span><strong>{selectedDevice?.simCarrier ?? 'Tanlanmagan'}</strong></div>
+          <div><span>Vaqt</span><strong>{schedule === 'now' ? 'Hozir' : new Date(scheduledAt).toLocaleString()}</strong></div>
+        </div>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          Guruhlardagi takroriy raqamlar server tomonidan bir marta yuboriladi; yakuniy son kampaniya ochilganda ko‘rinadi.
+        </p>
+      </Modal>
     </>
   );
 }

@@ -98,6 +98,53 @@ a {
 .muted {
   color: var(--muted);
 }
+.sender-summary,
+.readiness-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sender-summary > p {
+  flex-basis: 100%;
+}
+.readiness-card__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.readiness-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 5px var(--warn-soft);
+}
+.readiness-dot--online {
+  background: var(--success);
+  box-shadow: 0 0 0 5px var(--success-soft);
+}
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.review-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.review-grid span {
+  color: var(--muted);
+  font-size: 12px;
+}
+@media (max-width: 560px) {
+  .review-grid { grid-template-columns: 1fr; }
+}
 .serif {
   font-family: 'Instrument Serif', Georgia, serif;
 }

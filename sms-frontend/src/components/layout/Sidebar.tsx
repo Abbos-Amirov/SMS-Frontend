@@ -15,7 +15,7 @@ export function Sidebar({ open, onNavigate }: SidebarProps) {
       <div className="sidebar__brand">
         <div className="sidebar__logo">S</div>
         <div>
-          <div className="sidebar__brand-name">NovaSMS</div>
+          <div className="sidebar__brand-name">TezkorSMS</div>
           <div className="sidebar__brand-sub">Boshqaruv markazi</div>
         </div>
       </div>

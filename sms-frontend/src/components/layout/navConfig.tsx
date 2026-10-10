@@ -31,7 +31,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: '/', label: 'Boshqaruv paneli', icon: <IconChart />, end: true },
       { to: '/campaigns', label: 'Xabarlar', icon: <IconSend /> },
       { to: '/contacts', label: 'Kontaktlar', icon: <IconContacts /> },
-      { to: '/devices', label: 'Qurilmalar', icon: <IconDevice /> },
+      { to: '/devices', label: 'Yuboruvchi telefon', icon: <IconDevice /> },
     ],
   },
   {

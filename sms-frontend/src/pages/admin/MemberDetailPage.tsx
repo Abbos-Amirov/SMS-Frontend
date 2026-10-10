@@ -125,7 +125,7 @@ export function MemberDetailPage() {
             <div className="detail-item"><div className="l">Kompaniya</div><div className="v">{m.memberCompanyName || '—'}</div></div>
             <div className="detail-item"><div className="l">Telefon</div><div className="v">{m.memberPhone || '—'}</div></div>
             <div className="detail-item"><div className="l">Xabarlar</div><div className="v">{m.memberCampaigns}</div></div>
-            <div className="detail-item"><div className="l">Qurilmalar</div><div className="v">{m.memberDevices}</div></div>
+            <div className="detail-item"><div className="l">Yuboruvchi telefon</div><div className="v">{m.memberDevices ? 'Ulangan' : 'Ulanmagan'}</div></div>
             <div className="detail-item"><div className="l">Kontaktlar</div><div className="v">{m.memberContacts}</div></div>
             <div className="detail-item"><div className="l">Yuborilgan SMS</div><div className="v">{m.memberSentSms}</div></div>
             <div className="detail-item"><div className="l">Ro‘yxatdan</div><div className="v">{formatDate(m.createdAt)}</div></div>
