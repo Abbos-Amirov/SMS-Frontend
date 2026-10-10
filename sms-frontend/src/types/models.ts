@@ -48,6 +48,9 @@ export interface Device {
   platform?: DevicePlatform;
   phone?: string;
   carrier?: string;
+  simSubscriptionId?: number;
+  simSlotIndex?: number;
+  simCarrier?: string;
   networkType?: string;
   batteryLevel?: number;
   appVersion?: string;
@@ -71,6 +74,7 @@ export interface Campaign {
   memberId: string;
   title: string;
   message: string;
+  senderDeviceId?: string;
   status: CampaignStatus;
   scheduledAt?: string;
   totalCount: number;

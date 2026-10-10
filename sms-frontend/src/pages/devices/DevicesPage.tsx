@@ -88,6 +88,13 @@ export function DevicesPage() {
       header: 'Batareya',
       render: (d) => (d.batteryLevel != null ? `${d.batteryLevel}%` : <span className="muted">—</span>),
     },
+    {
+      key: 'sim',
+      header: 'Tanlangan SIM',
+      render: (d) => d.simCarrier ? (
+        <span>SIM {Number(d.simSlotIndex ?? 0) + 1} · {d.simCarrier}</span>
+      ) : <span className="muted">—</span>,
+    },
     { key: 'network', header: 'Tarmoq', render: (d) => d.networkType || <span className="muted">—</span> },
     { key: 'limit', header: 'Limit/min', render: (d) => d.sendLimitPerMinute },
     {

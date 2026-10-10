@@ -6,7 +6,6 @@ import {
   IconDevice,
   IconGrid,
   IconInbox,
-  IconReply,
   IconSend,
   IconShield,
   IconTemplate,
@@ -36,10 +35,9 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: 'Avtomatlashtirish',
+    title: 'Asboblar',
     items: [
       { to: '/templates', label: 'Shablonlar', icon: <IconTemplate /> },
-      { to: '/auto-reply', label: 'Avto-javob', icon: <IconReply /> },
       { to: '/sms-logs', label: 'SMS jurnali', icon: <IconInbox /> },
     ],
   },

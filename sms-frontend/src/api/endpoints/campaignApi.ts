@@ -6,6 +6,7 @@ export interface CreateCampaignBody {
   message: string;
   scheduledAt?: string;
   sendNow?: boolean;
+  deviceId?: string;
   contactIds?: string[];
   groupIds?: string[];
   phones?: string[];

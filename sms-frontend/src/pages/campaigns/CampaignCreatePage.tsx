@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateCampaignMutation } from '../../api/endpoints/campaignApi';
 import { useGetContactsQuery } from '../../api/endpoints/contactApi';
 import { useGetMySubscriptionQuery } from '../../api/endpoints/subscriptionApi';
 import { useGetTemplatesQuery } from '../../api/endpoints/templateApi';
 import { useGetContactGroupsQuery } from '../../api/endpoints/contactGroupApi';
+import { useGetDevicesQuery } from '../../api/endpoints/deviceApi';
 import { IconCredit } from '../../components/icons/UiIcons';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -14,6 +15,7 @@ import { SearchInput } from '../../components/ui/SearchInput';
 import { EmptyState, Skeleton } from '../../components/ui/states';
 import { useToast } from '../../features/ui/useToast';
 import { useDebouncedValue } from '../../lib/useDebouncedValue';
+import { smsLength } from '../../lib/sms';
 
 type RecipientMode = 'contacts' | 'groups' | 'phones';
 type ScheduleMode = 'now' | 'later';
@@ -33,6 +35,7 @@ export function CampaignCreatePage() {
   const [phones, setPhones] = useState('');
   const [schedule, setSchedule] = useState<ScheduleMode>('now');
   const [scheduledAt, setScheduledAt] = useState('');
+  const [deviceId, setDeviceId] = useState('');
 
   const [contactSearch, setContactSearch] = useState('');
   const debounced = useDebouncedValue(contactSearch);
@@ -43,12 +46,28 @@ export function CampaignCreatePage() {
   });
   const { data: templates } = useGetTemplatesQuery({ page: 1, limit: 100 });
   const { data: groups = [] } = useGetContactGroupsQuery();
+  const { data: devices, isLoading: devicesLoading } = useGetDevicesQuery();
+
+  const senderDevices = useMemo(
+    () => (devices?.list ?? []).filter((device) => device.status !== 'BLOCKED' && device.pairedAt),
+    [devices],
+  );
+
+  useEffect(() => {
+    if (!deviceId && senderDevices.length === 1) setDeviceId(senderDevices[0]._id);
+  }, [deviceId, senderDevices]);
 
   const phoneList = useMemo(
     () => phones.split(/[\n,;]+/).map((p) => p.trim()).filter(Boolean),
     [phones],
   );
-  const recipientCount = mode === 'contacts' ? selected.size : mode === 'groups' ? selectedGroups.size : phoneList.length;
+  const recipientCount = mode === 'contacts'
+    ? selected.size
+    : mode === 'groups'
+      ? groups.filter((group) => selectedGroups.has(group._id)).reduce((sum, group) => sum + (group.count ?? 0), 0)
+      : phoneList.length;
+  const sms = useMemo(() => smsLength(message), [message]);
+  const selectedDevice = senderDevices.find((device) => device._id === deviceId);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -75,6 +94,10 @@ export function CampaignCreatePage() {
       toast('error', 'Kamida bitta qabul qiluvchi tanlang.');
       return;
     }
+    if (!deviceId) {
+      toast('error', 'SMS yuboradigan qurilmani tanlang.');
+      return;
+    }
     if (schedule === 'later' && !scheduledAt) {
       toast('error', 'Yuborish vaqtini tanlang.');
       return;
@@ -84,6 +107,7 @@ export function CampaignCreatePage() {
         title: title.trim(),
         message: message.trim(),
         sendNow: schedule === 'now',
+        deviceId,
         scheduledAt: schedule === 'later' ? new Date(scheduledAt).toISOString() : undefined,
         contactIds: mode === 'contacts' ? Array.from(selected) : undefined,
         groupIds: mode === 'groups' ? Array.from(selectedGroups) : undefined,
@@ -145,9 +169,44 @@ export function CampaignCreatePage() {
             placeholder="SMS matni..."
             rows={4}
           />
+          <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
+            <span className="muted">{sms.encoding} · {sms.segments} SMS segment</span>
+            <span className="muted">{sms.remaining} belgi qoldi</span>
+          </div>
           <p className="muted" style={{ margin: 0 }}>
             Kontakt ismini qo‘shish uchun <strong>{'{{name}}'}</strong>, raqamni qo‘shish uchun <strong>{'{{phone}}'}</strong> yozing.
           </p>
+        </Card>
+
+        <Card title="Yuboruvchi qurilma">
+          {devicesLoading ? (
+            <Skeleton height={72} />
+          ) : senderDevices.length === 0 ? (
+            <EmptyState
+              icon={<IconCredit />}
+              title="Ulangan qurilma yo‘q"
+              message="Avval Android telefonni juftlang va worker’ni ishga tushiring."
+              action={<Button variant="ghost" onClick={() => navigate('/devices')}>Qurilmalar</Button>}
+            />
+          ) : (
+            <>
+              <Select
+                label="SMS qaysi telefondan yuboriladi?"
+                value={deviceId}
+                placeholder="— qurilmani tanlang —"
+                onChange={(event) => setDeviceId(event.target.value)}
+                options={senderDevices.map((device) => ({
+                  value: device._id,
+                  label: `${device.name} · ${device.status === 'ONLINE' ? 'onlayn' : 'oflayn'}${device.simCarrier ? ` · SIM ${Number(device.simSlotIndex ?? 0) + 1} (${device.simCarrier})` : ''}`,
+                }))}
+              />
+              {selectedDevice?.status !== 'ONLINE' && (
+                <p style={{ color: 'var(--warn)', marginBottom: 0 }}>
+                  Qurilma oflayn. Kampaniya navbatda turadi va telefon worker’i online bo‘lganda yuboriladi.
+                </p>
+              )}
+            </>
+          )}
         </Card>
 
         <Card title="Qabul qiluvchilar" actions={<span className="pill pill--accent">{recipientCount} ta</span>}>
@@ -197,7 +256,7 @@ export function CampaignCreatePage() {
                     checked={selectedGroups.has(group._id)}
                     onChange={() => toggleGroup(group._id)}
                   />
-                  <span>{group.name}</span>
+                  <span>{group.name} <span className="muted">({group.count ?? 0} kontakt)</span></span>
                 </label>
               ))}
             </div>
@@ -236,7 +295,7 @@ export function CampaignCreatePage() {
             Bekor qilish
           </Button>
           <Button variant="primary" loading={creating} onClick={submit}>
-            {schedule === 'now' ? 'Yaratish va yuborish' : 'Rejalashtirish'}
+            {schedule === 'now' ? `${recipientCount} kishiga yuborish` : 'Rejalashtirish'}
           </Button>
         </div>
       </div>

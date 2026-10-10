@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCancelCampaignMutation, useGetCampaignQuery } from '../../api/endpoints/campaignApi';
+import { useGetDevicesQuery } from '../../api/endpoints/deviceApi';
 import { IconChevronLeft } from '../../components/icons/UiIcons';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -20,6 +21,7 @@ export function CampaignDetailPage() {
     pollingInterval: 4000,
     skipPollingIfUnfocused: true,
   });
+  const { data: devices } = useGetDevicesQuery();
   const [cancelCampaign, { isLoading: cancelling }] = useCancelCampaignMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -30,6 +32,7 @@ export function CampaignDetailPage() {
   const total = data.totalCount || 1;
   const pct = (n: number) => `${(n / total) * 100}%`;
   const canCancel = data.status === 'SENDING' || data.status === 'SCHEDULED';
+  const sender = devices?.list.find((device) => device._id === data.senderDeviceId);
 
   const doCancel = async () => {
     try {
@@ -66,6 +69,13 @@ export function CampaignDetailPage() {
             <StatusPill tone={campaignStatusTone[data.status]} label={campaignStatusLabel[data.status]} />
             {data.scheduledAt && <span className="muted">Reja: {formatDate(data.scheduledAt)}</span>}
           </div>
+
+          {sender && (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Yuboruvchi: <strong style={{ color: 'var(--text)' }}>{sender.name}</strong>
+              {sender.simCarrier ? ` · SIM ${Number(sender.simSlotIndex ?? 0) + 1} (${sender.simCarrier})` : ''}
+            </p>
+          )}
 
           <div className="progress-track" style={{ marginBottom: 14 }}>
             <div className="progress-seg--sent" style={{ width: pct(p.sent) }} />
