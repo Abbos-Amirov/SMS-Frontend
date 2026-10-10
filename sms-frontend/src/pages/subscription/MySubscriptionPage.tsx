@@ -46,8 +46,8 @@ export function MySubscriptionPage() {
                 <div className="v">{activeSub.expiresAt ? formatDate(activeSub.expiresAt) : 'Muddatsiz'}</div>
               </div>
               <div className="detail-item">
-                <div className="l">Qurilma limiti</div>
-                <div className="v">{formatLimit(activeSub.deviceLimit)}</div>
+                <div className="l">Yuboruvchi telefon</div>
+                <div className="v">1 ta</div>
               </div>
               <div className="detail-item">
                 <div className="l">Kunlik SMS limiti</div>
@@ -100,7 +100,7 @@ export function MySubscriptionPage() {
 
 function PlanCard({ plan, onRequest }: { plan: Plan; onRequest: () => void }) {
   const features = [
-    plan.deviceLimit == null ? 'Cheksiz qurilma' : `${plan.deviceLimit} ta qurilma`,
+    '1 ta yuboruvchi telefon',
     plan.dailySmsLimit == null ? 'Cheksiz SMS' : `Kunlik ${formatLimit(plan.dailySmsLimit)} SMS`,
     plan.durationDays == null ? 'Muddatsiz' : `${plan.durationDays} kun muddat`,
     ...plan.features,

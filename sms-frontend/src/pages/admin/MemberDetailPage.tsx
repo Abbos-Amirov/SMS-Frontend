@@ -37,7 +37,6 @@ export function MemberDetailPage() {
   const [subOpen, setSubOpen] = useState(false);
   const [plan, setPlan] = useState<SubscriptionPlan>('BASIC');
   const [durationDays, setDurationDays] = useState('30');
-  const [deviceLimit, setDeviceLimit] = useState('');
   const [dailySmsLimit, setDailySmsLimit] = useState('');
 
   // Prefill the limits from the chosen plan's catalog (null => empty = unlimited).
@@ -45,7 +44,6 @@ export function MemberDetailPage() {
     const p = plans?.find((x) => x.code === code);
     if (!p) return;
     setDurationDays(p.durationDays == null ? '' : String(p.durationDays));
-    setDeviceLimit(p.deviceLimit == null ? '' : String(p.deviceLimit));
     setDailySmsLimit(p.dailySmsLimit == null ? '' : String(p.dailySmsLimit));
   };
 
@@ -92,7 +90,7 @@ export function MemberDetailPage() {
         data: {
           plan,
           durationDays: durationDays ? Number(durationDays) : undefined,
-          deviceLimit: deviceLimit ? Number(deviceLimit) : undefined,
+          deviceLimit: 1,
           dailySmsLimit: dailySmsLimit ? Number(dailySmsLimit) : undefined,
         },
       }).unwrap();
@@ -192,12 +190,6 @@ export function MemberDetailPage() {
           type="number"
           value={dailySmsLimit}
           onChange={(e) => setDailySmsLimit(e.target.value)}
-        />
-        <Input
-          label="Qurilma limiti (bo‘sh = tarif bo‘yicha)"
-          type="number"
-          value={deviceLimit}
-          onChange={(e) => setDeviceLimit(e.target.value)}
         />
       </Modal>
 

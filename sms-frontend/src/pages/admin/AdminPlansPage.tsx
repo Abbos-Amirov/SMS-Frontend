@@ -15,7 +15,6 @@ interface EditState {
   code: Plan['code'];
   name: string;
   price: string;
-  deviceLimit: string;
   dailySmsLimit: string;
   durationDays: string;
   description: string;
@@ -40,7 +39,6 @@ export function AdminPlansPage() {
       code: plan.code,
       name: plan.name,
       price: plan.price == null ? '' : String(plan.price),
-      deviceLimit: plan.deviceLimit == null ? '' : String(plan.deviceLimit),
       dailySmsLimit: plan.dailySmsLimit == null ? '' : String(plan.dailySmsLimit),
       durationDays: plan.durationDays == null ? '' : String(plan.durationDays),
       description: plan.description ?? '',
@@ -55,10 +53,9 @@ export function AdminPlansPage() {
       return;
     }
     const price = toNullableNumber(edit.price);
-    const deviceLimit = toNullableNumber(edit.deviceLimit);
     const dailySmsLimit = toNullableNumber(edit.dailySmsLimit);
     const durationDays = toNullableNumber(edit.durationDays);
-    if ([price, deviceLimit, dailySmsLimit, durationDays].includes(undefined)) {
+    if ([price, dailySmsLimit, durationDays].includes(undefined)) {
       toast('error', 'Raqamli maydonlar noto‘g‘ri. Bo‘sh = cheksiz.');
       return;
     }
@@ -76,7 +73,6 @@ export function AdminPlansPage() {
         data: {
           name: edit.name.trim(),
           price,
-          deviceLimit,
           dailySmsLimit,
           durationDays,
           description: edit.description.trim(),
@@ -92,7 +88,7 @@ export function AdminPlansPage() {
 
   return (
     <>
-      <PageHeader title="Tariflar" subtitle="Narx, qurilma va kunlik SMS limitini boshqaring." />
+      <PageHeader title="Tariflar" subtitle="Narx va kunlik SMS limitini boshqaring. MVP’da barcha tariflar bitta telefon bilan ishlaydi." />
 
       {isLoading ? (
         <div className="card-grid">
@@ -113,7 +109,7 @@ export function AdminPlansPage() {
               </div>
               <div className="detail-grid">
                 <div className="detail-item"><div className="l">Narx</div><div className="v">{formatPrice(plan.price, plan.currency)}</div></div>
-                <div className="detail-item"><div className="l">Qurilma limiti</div><div className="v">{formatLimit(plan.deviceLimit)}</div></div>
+                <div className="detail-item"><div className="l">Yuboruvchi telefon</div><div className="v">1 ta</div></div>
                 <div className="detail-item"><div className="l">Kunlik SMS</div><div className="v">{formatLimit(plan.dailySmsLimit)}</div></div>
                 <div className="detail-item"><div className="l">Muddat</div><div className="v">{plan.durationDays == null ? 'Muddatsiz' : `${plan.durationDays} kun`}</div></div>
               </div>
@@ -143,13 +139,6 @@ export function AdminPlansPage() {
               value={edit.price}
               onChange={(e) => setEdit({ ...edit, price: e.target.value })}
               placeholder="Kelishuv asosida"
-            />
-            <Input
-              label="Qurilma limiti (bo‘sh = cheksiz)"
-              type="number"
-              value={edit.deviceLimit}
-              onChange={(e) => setEdit({ ...edit, deviceLimit: e.target.value })}
-              placeholder="Cheksiz"
             />
             <Input
               label="Kunlik SMS limiti (bo‘sh = cheksiz)"
